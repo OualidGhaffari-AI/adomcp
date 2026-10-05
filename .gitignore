@@ -1,3 +1,5 @@
 .env
 __pycache__/
 *.pyc
+dify_cicd_mcp_workflow.yml
+dify_cicd_agent_chat.yml
