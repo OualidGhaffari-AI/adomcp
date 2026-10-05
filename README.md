@@ -23,20 +23,5 @@ docker exec ado-mcp python test_client.py MEF.DirectiondeBudget.FE
 ```
 
 
-## Intégration dans Dify (DSL)
 
-Deux fichiers DSL prêts à l'import sont inclus :
 
-1. **`dify_cicd_mcp_workflow.yml` (Workflow automatique)** :
-   - Prend en entrée le nom du projet (ex: `RDT-Simulator`, `MEF.DirectiondeBudget.FE`).
-   - Interroge automatiquement les outils MCP (`get_project_cicd_summary`, `get_last_failed_build`, `get_build_logs`).
-   - Affiche directement le rapport CI/CD complet formaté en Markdown dans Dify.
-
-2. **`dify_cicd_agent_chat.yml` (Chatbot DevOps conversationnel)** :
-   - Mode conversationnel pour auditer vos projets à la demande via une interface de chat.
-
-### Comment l'importer dans Dify :
-1. Dans Dify (sur votre VM) : cliquez sur **Studio** > **Créer depuis un fichier DSL** (ou *Import DSL*).
-2. Sélectionnez `dify_cicd_mcp_workflow.yml`.
-3. Dans le nœud **Agent CI/CD (MCP)**, vérifiez votre modèle LLM et la liaison avec les outils MCP `ado-mcp`.
-4. Cliquez sur **Exécuter** !
