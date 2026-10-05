@@ -6,5 +6,11 @@ services:
     env_file: .env
     ports:
       - "8000:8000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - dify_network
+
+networks:
+  dify_network:
+    external: true
+    name: docker_default
