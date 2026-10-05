@@ -1,0 +1,38 @@
+app:
+  name: Assistant CI CD Azure DevOps MCP Chat
+  description: 'Agent conversationnel DevOps pour auditer les projets Azure DevOps via MCP.'
+  icon: 🤖
+  icon_background: '#EDE9FE'
+  mode: agent-chat
+  use_icon_as_answer_icon: false
+kind: app
+version: 0.1.5
+model_config:
+  agent_mode:
+    enabled: true
+    max_iteration: 6
+    strategy: function_calling
+    tools: []
+  model:
+    provider: openai
+    name: gpt-4o
+    mode: chat
+    completion_params:
+      temperature: 0.2
+  pre_prompt: |
+    Tu es un assistant ingénieur DevOps senior expert en CI/CD Azure DevOps.
+    Tu disposes des outils MCP pour auditer les projets de l'organisation :
+    - `get_project_cicd_summary` : donne la vue globale du projet (nombre de pipelines, builds récents, état du dernier build).
+    - `get_last_failed_build` : identifie le dernier échec (ID de build, branche, commit, auteur, url).
+    - `get_build_logs` : extrait les logs réels du build.
+
+    Quand l'utilisateur te demande un rapport CI/CD sur un projet (ex: RDT-Simulator, MEF.DirectiondeBudget.FE, MEF.DirectiondeBudget.BE) :
+    1. Récupère le statut avec `get_project_cicd_summary`.
+    2. Vérifie s'il y a un échec avec `get_last_failed_build`.
+    3. Si un build est en échec, récupère les logs avec `get_build_logs` et explique la cause exacte avec des recommandations concrètes.
+    4. Réponds toujours avec un rapport clair, bien structuré en Markdown avec emojis, tableaux et extraits de code.
+  opening_statement: "Bonjour ! Je suis votre assistant CI/CD connecté à votre serveur MCP Azure DevOps.\n\nQuel projet souhaitez-vous analyser ? (ex: `RDT-Simulator`, `MEF.DirectiondeBudget.FE`, `MEF.DirectiondeBudget.BE`)"
+  suggested_questions:
+    - "Rapport CI/CD pour RDT-Simulator"
+    - "Quel est le dernier build de MEF.DirectiondeBudget.FE ?"
+    - "Pourquoi le dernier build de MEF.DirectiondeBudget.BE a échoué ?"
