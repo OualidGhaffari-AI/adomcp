@@ -1,9 +1,16 @@
 services:
   ado-mcp:
-    build: .
+    image: node:20-alpine
     container_name: ado-mcp
     restart: unless-stopped
     env_file: .env
+    environment:
+      PERSONAL_ACCESS_TOKEN: ${ADO_PAT_B64}
+    command: >
+      npx -y supergateway
+      --stdio "npx -y @azure-devops/mcp netopiacs --authentication pat -d core work work-items repositories pipelines wiki"
+      --outputTransport streamableHttp
+      --port 8000
     ports:
       - "8000:8000"
     networks:
