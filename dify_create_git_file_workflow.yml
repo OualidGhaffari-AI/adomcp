@@ -1,0 +1,179 @@
+app:
+  description: 'Workflow Dify permettant de créer directement un fichier dans un dépôt Git Azure DevOps via l''API REST Pushes'
+  icon: 📝
+  icon_background: '#E0F2FE'
+  mode: workflow
+  name: Créateur de Fichier Git Azure DevOps
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+  graph:
+    edges:
+      - id: start-to-get-ref
+        source: start
+        sourcePort: source
+        target: http_get_branch_ref
+        targetPort: target
+      - id: get-ref-to-create-file
+        source: http_get_branch_ref
+        sourcePort: source
+        target: http_create_git_file
+        targetPort: target
+      - id: create-file-to-end
+        source: http_create_git_file
+        sourcePort: source
+        target: end
+        targetPort: target
+    nodes:
+      - data:
+          desc: 'Informations du fichier à créer'
+          title: Début
+          type: start
+          variables:
+            - default: RDT-Simulator
+              label: Projet
+              max_length: 100
+              required: true
+              type: text-input
+              variable: project_name
+            - default: RDT-Simulator
+              label: Dépôt Git (Repository)
+              max_length: 100
+              required: true
+              type: text-input
+              variable: repository_name
+            - default: main
+              label: Branche
+              max_length: 100
+              required: true
+              type: text-input
+              variable: branch_name
+            - default: /docs/guide-dify.md
+              label: Chemin du fichier (avec /)
+              max_length: 200
+              required: true
+              type: text-input
+              variable: file_path
+            - default: "# Documentation créée depuis Dify\n\nCe fichier a été créé automatiquement via l'API Azure DevOps !"
+              label: Contenu du fichier
+              max_length: 50000
+              required: true
+              type: paragraph
+              variable: file_content
+        height: 90
+        id: start
+        position:
+          x: 60
+          y: 280
+        type: custom
+        width: 240
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data: ''
+            type: none
+          desc: 'Récupère le SHA actuel du dernier commit de la branche'
+          headers: 'Authorization: Basic by5naGFmZmFyaUBuZXRvcGlhLm1hOkVSdkFLc3ZhdmQ0V01XVjFacnp1RVphWnUwUDJBM3lldVB1bFNwUDg4U1NrQVNJRzNFREtKUVFKOTlDSkFDQUFBQUF1WXVRRkFBQVNBWkRPMUd3cw=='
+          method: get
+          params: ''
+          retry_config:
+            max_retries: 3
+            retry_enabled: true
+            retry_interval: 1000
+          timeout:
+            connect: 10
+            read: 30
+            write: 30
+          title: 1. Récupérer SHA Branche
+          type: http-request
+          url: 'https://dev.azure.com/netopiacs/{{#start.project_name#}}/_apis/git/repositories/{{#start.repository_name#}}/refs?filter=heads/{{#start.branch_name#}}&api-version=7.1'
+        height: 90
+        id: http_get_branch_ref
+        position:
+          x: 350
+          y: 280
+        type: custom
+        width: 240
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data: |
+              {
+                "refUpdates": [
+                  {
+                    "name": "refs/heads/{{#start.branch_name#}}",
+                    "oldObjectId": "{{#http_get_branch_ref.body.value[0].objectId#}}"
+                  }
+                ],
+                "commits": [
+                  {
+                    "comment": "Ajout du fichier {{#start.file_path#}} depuis Dify",
+                    "changes": [
+                      {
+                        "changeType": "add",
+                        "item": {
+                          "path": "{{#start.file_path#}}"
+                        },
+                        "newContent": {
+                          "content": "{{#start.file_content#}}",
+                          "contentType": "rawtext"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            type: json
+          desc: 'Effectue le Push Git pour créer le fichier'
+          headers: |
+            Authorization: Basic by5naGFmZmFyaUBuZXRvcGlhLm1hOkVSdkFLc3ZhdmQ0V01XVjFacnp1RVphWnUwUDJBM3lldVB1bFNwUDg4U1NrQVNJRzNFREtKUVFKOTlDSkFDQUFBQUF1WXVRRkFBQVNBWkRPMUd3cw==
+            Content-Type: application/json
+          method: post
+          params: ''
+          retry_config:
+            max_retries: 3
+            retry_enabled: true
+            retry_interval: 1000
+          timeout:
+            connect: 10
+            read: 30
+            write: 30
+          title: 2. Créer le Fichier (Push)
+          type: http-request
+          url: 'https://dev.azure.com/netopiacs/{{#start.project_name#}}/_apis/git/repositories/{{#start.repository_name#}}/pushes?api-version=7.1'
+        height: 90
+        id: http_create_git_file
+        position:
+          x: 640
+          y: 280
+        type: custom
+        width: 240
+      - data:
+          desc: 'Confirmation de la création'
+          outputs:
+            - value_selector:
+                - http_create_git_file
+                - body
+              variable: push_details
+            - value_selector:
+                - http_create_git_file
+                - status_code
+              variable: status_code
+          title: Fin
+          type: end
+        height: 90
+        id: end
+        position:
+          x: 930
+          y: 280
+        type: custom
+        width: 240
