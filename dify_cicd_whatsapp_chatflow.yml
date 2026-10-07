@@ -1,0 +1,209 @@
+app:
+  description: "Assistant DevOps Intelligent connectable à WhatsApp (Twilio/Evolution API/Meta). Analyse vos pipelines Azure DevOps et renvoie des alertes compactes et formatées pour mobile."
+  icon: 📱
+  icon_background: "#25D366"
+  mode: advanced-chat
+  name: DevOps WhatsApp CI/CD Bot
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: "👋 *Bienvenue sur votre assistant DevOps WhatsApp !*\n\nJe surveille vos pipelines Azure DevOps en direct.\nExemples de messages :\n• _\"Statut RDT-Simulator\"_\n• _\"Dernier build MEF.DirectiondeBudget.FE\"_\n• _\"Santé CI/CD\"_"
+    suggested_questions:
+      - "Statut du projet RDT-Simulator"
+      - "Dernier build de MEF.DirectiondeBudget.FE"
+      - "Y a-t-il des échecs récents ?"
+  graph:
+    edges:
+      - id: edge-start-to-extractor
+        source: start
+        sourcePort: source
+        target: llm_intent_extractor
+        targetPort: target
+      - id: edge-extractor-to-tool
+        source: llm_intent_extractor
+        sourcePort: source
+        target: tool_pipelines_build
+        targetPort: target
+      - id: edge-tool-to-whatsapp-formatter
+        source: tool_pipelines_build
+        sourcePort: source
+        target: llm_whatsapp_formatter
+        targetPort: target
+      - id: edge-formatter-to-answer
+        source: llm_whatsapp_formatter
+        sourcePort: source
+        target: answer_whatsapp
+        targetPort: target
+    nodes:
+      - data:
+          desc: "Point d'entrée du message WhatsApp de l'utilisateur"
+          selected: false
+          title: Message Reçu
+          type: start
+          variables: []
+        height: 90
+        id: start
+        position:
+          x: 60
+          y: 280
+        positionAbsolute:
+          x: 60
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 240
+      - data:
+          context:
+            enabled: false
+            variable_selector: []
+          desc: "Extrait le nom du projet Azure DevOps depuis le message WhatsApp"
+          model:
+            mode: chat
+            name: deepseek-chat
+            provider: deepseek
+          prompt_template:
+            - role: system
+              text: |
+                Tu es un extracteur d'entités DevOps.
+                Analyse le message de l'utilisateur et extrait UNIQUEMENT le nom du projet Azure DevOps mentionné.
+                Si aucun projet n'est mentionné explicitement, réponds par défaut : "RDT-Simulator".
+                
+                IMPORTANT : Réponds UNIQUEMENT le nom du projet brut, sans guillemets, sans ponctuation, sans phrase.
+                Exemples :
+                "Donne moi les builds de RDT-Simulator" -> RDT-Simulator
+                "Statut MEF.DirectiondeBudget.FE svp" -> MEF.DirectiondeBudget.FE
+                "C'est quoi la santé ?" -> RDT-Simulator
+            - role: user
+              text: "{{#sys.query#}}"
+          selected: false
+          title: Extraction Projet
+          type: llm
+          vision:
+            enabled: false
+        height: 90
+        id: llm_intent_extractor
+        position:
+          x: 350
+          y: 280
+        positionAbsolute:
+          x: 350
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 240
+      - data:
+          desc: "Interroge Azure DevOps via MCP pour les 5 derniers builds"
+          is_team_authorization: false
+          param_schemas: []
+          params:
+            action: list
+            project: "{{#llm_intent_extractor.text#}}"
+            top: 5
+          provider_id: azure-devops
+          provider_name: azure-devops
+          provider_type: mcp
+          selected: false
+          title: pipelines_build
+          tool_configurations: {}
+          tool_name: pipelines_build
+          type: tool
+        height: 90
+        id: tool_pipelines_build
+        position:
+          x: 640
+          y: 280
+        positionAbsolute:
+          x: 640
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 240
+      - data:
+          context:
+            enabled: false
+            variable_selector: []
+          desc: "Rédige une alerte/synthèse spécialement formatée pour WhatsApp (sans tableaux, avec emojis et syntaxe WhatsApp)"
+          model:
+            mode: chat
+            name: deepseek-chat
+            provider: deepseek
+          prompt_template:
+            - role: system
+              text: |
+                Tu es un assistant DevOps qui communique avec un responsable technique sur WhatsApp.
+                Tu dois transformer les données brutes Azure DevOps en un message WhatsApp concis, visuel et percutant.
+
+                RÈGLES DE FORMATAGE WHATSAPP STRICTES :
+                1. N'utilise JAMAIS de tableaux Markdown (|---|) car ils sont illisibles sur mobile.
+                2. Utilise la syntaxe native de WhatsApp :
+                   - *Texte en gras* pour les titres et clés (ex: *Statut :*)
+                   - _Texte en italique_ pour les détails secondaires (ex: _branche main_)
+                   - `code` pour les IDs de build et commits
+                3. Structure type pour WhatsApp :
+                   📊 *RAPPORT CI/CD — [Nom du Projet]*
+
+                   *État global :* 🟢 Stable / 🔴 En échec / ⚪ Aucun build
+                   *Dernier build :* #`ID` sur `[branche]`
+                   *Auteur :* [Nom]
+                   *Date :* [Date/Heure]
+
+                   📋 *Derniers builds :*
+                   • #`102` | 🟢 Réussi | `main` | _Il y a 2h_
+                   • #`101` | 🔴 Échoué | `feat/api` | _Hier_
+
+                   💡 *Action requise :*
+                   [Conseil rapide en 1 ou 2 phrases percutantes]
+                4. Sois très direct et facile à lire en marchant sur un smartphone.
+
+                Données des builds Azure DevOps :
+                {{#tool_pipelines_build.text#}}
+            - role: user
+              text: "Projet interrogé : {{#llm_intent_extractor.text#}}\nMessage original : {{#sys.query#}}"
+          selected: false
+          title: Formatage WhatsApp
+          type: llm
+          vision:
+            enabled: false
+        height: 90
+        id: llm_whatsapp_formatter
+        position:
+          x: 930
+          y: 280
+        positionAbsolute:
+          x: 930
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 240
+      - data:
+          answer: "{{#llm_whatsapp_formatter.text#}}"
+          desc: "Renvoie le message formaté au client WhatsApp"
+          selected: false
+          title: Réponse WhatsApp
+          type: answer
+        height: 90
+        id: answer_whatsapp
+        position:
+          x: 1220
+          y: 280
+        positionAbsolute:
+          x: 1220
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 240
