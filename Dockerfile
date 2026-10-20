@@ -9,8 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsecret-1-0 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g supergateway @azure-devops/mcp
+RUN npm install -g supergateway @azure-devops/mcp @ansible/ansible-mcp-server
 
-EXPOSE 8000
+WORKDIR /app
+COPY gateway.js /app/gateway.js
+
+EXPOSE 8000 8001
 
 ENTRYPOINT ["supergateway"]
+

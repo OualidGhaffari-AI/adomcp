@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g supergateway
+
+RUN pip install --no-cache-dir \
+    awx-mcp-server \
+    "mcp<2.0.0" \
+    ansible \
+    ansible-lint
+
+EXPOSE 8002
+
+ENTRYPOINT ["supergateway"]

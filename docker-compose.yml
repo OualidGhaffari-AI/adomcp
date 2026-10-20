@@ -7,12 +7,47 @@ services:
     env_file: .env
     environment:
       PERSONAL_ACCESS_TOKEN: ${ADO_PAT_B64}
-    command: >
-      --stdio "mcp-server-azuredevops netopiacs --authentication pat -d core work work-items repositories pipelines wiki"
-      --outputTransport streamableHttp
-      --port 8000
+      AZURE_DEVOPS_ORG: netopiacs
+      DATA_DIR: /data
+      PORT: 8000
+      GATEWAY_ENCRYPTION_KEY: ${GATEWAY_ENCRYPTION_KEY:-devsecops_super_secret_master_key_2026}
+    entrypoint: ["node", "/app/gateway.js"]
+    volumes:
+      - ado_tokens_data:/data
     ports:
       - "8000:8000"
+    networks:
+      - default
+      - dify_network
+
+  ansible-mcp:
+    build: .
+    image: ado-mcp:latest
+    container_name: ansible-mcp
+    restart: unless-stopped
+    command: >
+      --stdio "ansible-mcp-server --stdio"
+      --outputTransport streamableHttp
+      --port 8001
+    ports:
+      - "8001:8001"
+    networks:
+      - default
+      - dify_network
+
+  awx-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.awx
+    image: awx-mcp:latest
+    container_name: awx-mcp
+    restart: unless-stopped
+    command: >
+      --stdio "python -m awx_mcp_server"
+      --outputTransport streamableHttp
+      --port 8002
+    ports:
+      - "8002:8002"
     networks:
       - default
       - dify_network
@@ -21,3 +56,6 @@ networks:
   dify_network:
     external: true
     name: docker_default
+
+volumes:
+  ado_tokens_data:

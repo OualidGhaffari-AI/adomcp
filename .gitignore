@@ -1,5 +1,12 @@
 .env
 __pycache__/
 *.pyc
-dify_cicd_mcp_workflow.yml
-dify_cicd_agent_chat.yml
+# Dify DSL files
+dify_*.yml
+dify_*.yaml
+*_dsl.yml
+*_dsl.yaml
+*.dsl.yml
+*.dsl.yaml
+Rapport*.yml
+Rapport*.yaml
